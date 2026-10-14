@@ -13,6 +13,10 @@
   * { box-sizing:border-box; }
   html,body { margin:0; height:100%; background:var(--bg); color:var(--text);
     font-family:"Segoe UI",Inter,system-ui,-apple-system,sans-serif; font-size:14px; }
+  * { scrollbar-width:thin; scrollbar-color:rgba(110,150,255,.35) transparent; }
+  ::-webkit-scrollbar { width:8px; height:8px; }
+  ::-webkit-scrollbar-thumb { background:rgba(110,150,255,.3); border-radius:8px; }
+  ::-webkit-scrollbar-track { background:transparent; }
   button { font:inherit; color:inherit; cursor:pointer; }
   svg { display:block; }
 
@@ -110,7 +114,10 @@
   #posCard { right:14px; top:122px; width:236px; padding:12px 14px; }
   #posCard .row, .rows .row { display:flex; justify-content:space-between; padding:3px 0; }
   .row span:first-child { color:var(--dim); }
-  #legend { right:14px; bottom:14px; width:236px; padding:12px 14px; }
+  #legend { right:14px; bottom:14px; width:236px; padding:8px 14px; }
+  #legend .lg-head { display:flex; justify-content:space-between; align-items:center; cursor:pointer; color:var(--dim); user-select:none; }
+  #legend .lg-body { display:none; padding-top:6px; }
+  #legend.open .lg-body { display:block; }
   #legend .lg { display:flex; align-items:center; gap:10px; padding:3px 0; color:var(--dim); }
   .dot { width:10px; height:10px; border-radius:50%; flex:none; }
   .ln { width:14px; height:2px; flex:none; }
@@ -252,12 +259,12 @@
           <div class="row"><span>TX</span><b id="pTx">—</b></div>
         </div>
 
-        <div id="legend" class="glass">
+        <div id="legend" class="glass"><div class="lg-head" id="lgHead"><span>Легенда</span><span id="lgArrow">▴</span></div><div class="lg-body">
           <div class="lg"><span class="dot" style="background:#ffd35e"></span>Положення супутника</div>
           <div class="lg"><span class="ln" style="background:#9fe8ff"></span>Орбіта</div>
           <div class="lg"><span class="dot" style="background:#4da3ff"></span>Місце спостереження</div>
           <div class="lg"><span class="ln" style="background:#35e08a"></span>Лінія на супутник</div>
-          <div class="lg"><span class="dot" style="background:linear-gradient(90deg,#f5d77a 50%,#0a1022 50%);border:1px solid #456"></span>День / ніч</div>
+          <div class="lg"><span class="dot" style="background:linear-gradient(90deg,#f5d77a 50%,#0a1022 50%);border:1px solid #456"></span>День / ніч</div></div>
         </div>
 
         <div id="zoom" class="glass"><button id="zin">+</button><button id="zout">−</button></div>
@@ -518,7 +525,7 @@ function placeObserver() {
 // камера
 let camGoal = null, focusMode = 'observer';
 controls.addEventListener('start', () => { camGoal = null; });
-function flyTo(v, dist = 3.1) { camGoal = v.clone().normalize().multiplyScalar(dist); }
+function flyTo(v, dist = 3.9) { camGoal = v.clone().normalize().multiplyScalar(dist); }
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
   if (!w || !h) return;
@@ -528,6 +535,7 @@ function resize() {
 new ResizeObserver(resize).observe(stage);
 resize();
 
+$('lgHead').onclick = () => { const l = $('legend'); l.classList.toggle('open'); $('lgArrow').textContent = l.classList.contains('open') ? '▾' : '▴'; };
 $('zin').onclick = () => { camGoal = null; camera.position.multiplyScalar(0.8); };
 $('zout').onclick = () => { camGoal = null; camera.position.multiplyScalar(1.25); };
 $('focusBtn').onclick = () => {
@@ -856,7 +864,7 @@ dlg.addEventListener('close', () => document.querySelectorAll('nav button').forE
 /* =====================  запуск  ===================== */
 $('locName').textContent = observer.name;
 placeObserver();
-camera.position.copy(obsGroup.position.clone().normalize().multiplyScalar(3.1));
+camera.position.copy(obsGroup.position.clone().normalize().multiplyScalar(3.9));
 controls.update();
 
 try {
