@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkyTrack</title>
+<style>
+  :root {
+    --bg:#030610; --panel:rgba(10,18,38,.82); --panel2:rgba(255,255,255,.04);
+    --line:rgba(110,150,255,.18); --text:#dce6ff; --dim:#7f90b8;
+    --accent:#4aa8ff; --accent2:#5ee1ff; --ok:#35e08a; --warn:#ffc95e; --bad:#ff6b7a;
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--text);
+    font-family:"Segoe UI",Inter,system-ui,-apple-system,sans-serif; font-size:14px; }
+  button { font:inherit; color:inherit; cursor:pointer; }
+  svg { display:block; }
+
+  #app { display:grid; grid-template-columns:240px 1fr; grid-template-rows:60px 1fr; height:100vh;
+    background:radial-gradient(1200px 700px at 70% 10%, #0b1633 0%, #050a1a 55%, #02040c 100%); }
+
+  /* ---------- шапка ---------- */
+  header { grid-column:1 / 3; display:flex; align-items:center; gap:28px; padding:0 22px;
+    border-bottom:1px solid var(--line); background:rgba(4,8,20,.7); backdrop-filter:blur(8px); }
+  .brand { display:flex; align-items:center; gap:10px; font-size:21px; font-weight:600; width:200px; }
+  .brand svg { color:var(--accent2); }
+  nav { display:flex; gap:6px; }
+  nav button { background:none; border:0; padding:8px 14px; border-radius:8px; color:var(--dim); }
+  nav button:hover, nav button.on { color:var(--text); background:var(--panel2); }
+  .spacer { flex:1; }
+  .chip { display:flex; align-items:center; gap:8px; padding:7px 14px; border-radius:99px;
+    background:var(--panel2); border:1px solid var(--line); }
+  .chip:hover { border-color:var(--accent); }
+  .icon-btn { width:36px; height:36px; display:grid; place-items:center; border-radius:10px;
+    background:var(--panel2); border:1px solid var(--line); }
+  .icon-btn:hover { border-color:var(--accent); }
+
+  /* ---------- бічна панель ---------- */
+  aside { border-right:1px solid var(--line); padding:14px 10px; overflow:auto; background:rgba(4,8,20,.55); }
+  .sat-item { width:100%; display:flex; align-items:center; gap:12px; padding:11px 12px; margin-bottom:4px;
+    border-radius:10px; border:1px solid transparent; background:none; text-align:left; color:var(--text); }
+  .sat-item svg { color:var(--accent); flex:none; }
+  .sat-item[data-group="weather"] svg { color:var(--warn); }
+  .sat-item[data-group="science"] svg { color:#b58cff; }
+  .sat-item[data-group="amateur"] svg { color:var(--ok); }
+  .sat-item:hover { background:var(--panel2); }
+  .sat-item.active { background:rgba(74,168,255,.14); border-color:rgba(74,168,255,.4); }
+  .sat-item.off { opacity:.4; }
+  .sat-item .nm { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .add-btn { width:100%; margin-top:8px; padding:10px 12px; display:flex; gap:10px; align-items:center;
+    background:none; border:1px dashed var(--line); border-radius:10px; color:var(--dim); }
+  .add-btn:hover { color:var(--text); border-color:var(--accent); }
+
+  /* ---------- головна область ---------- */
+  main { display:grid; grid-template-columns:minmax(340px,430px) 1fr; grid-template-rows:minmax(460px,1fr) 250px;
+    gap:14px; padding:14px; min-height:0; overflow:auto; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px 18px;
+    backdrop-filter:blur(10px); min-width:0; }
+  .card h3 { margin:0 0 12px; font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px; }
+  .card h3 .r { margin-left:auto; color:var(--dim); font-weight:400; font-size:12.5px; }
+  .left { display:flex; flex-direction:column; gap:14px; min-height:0; }
+
+  .hero { display:flex; gap:16px; align-items:center; }
+  .hero .pic { width:74px; height:74px; border-radius:14px; background:var(--panel2); display:grid; place-items:center;
+    border:1px solid var(--line); color:var(--accent2); flex:none; }
+  .hero h2 { margin:0 0 2px; font-size:21px; font-weight:600; }
+  .hero .sub { color:var(--dim); margin-bottom:6px; }
+  .status { display:inline-flex; align-items:center; gap:7px; padding:3px 11px; border-radius:99px; font-size:12.5px;
+    background:rgba(255,255,255,.06); color:var(--dim); }
+  .status::before { content:""; width:8px; height:8px; border-radius:50%; background:currentColor; }
+  .status.ok { color:var(--ok); background:rgba(53,224,138,.12); }
+  .status.warn { color:var(--warn); background:rgba(255,201,94,.12); }
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); margin-top:14px; border-top:1px solid var(--line); padding-top:12px; }
+  .stats div { padding:0 10px; border-left:1px solid var(--line); }
+  .stats div:first-child { border-left:0; padding-left:0; }
+  .stats small { display:block; color:var(--dim); font-size:11.5px; margin-bottom:2px; }
+  .stats b { font-size:17px; font-weight:600; }
+  .stats b i { font-style:normal; font-size:12px; color:var(--dim); font-weight:400; }
+
+  .link { background:none; border:0; color:var(--accent); padding:0; font-size:12.5px; margin-left:auto; }
+  #passList { display:flex; flex-direction:column; gap:10px; }
+  .pass { display:grid; grid-template-columns:1fr 1fr 1fr 70px 18px; gap:6px; align-items:center; padding:11px 12px;
+    border-radius:12px; border:1px solid var(--line); background:var(--panel2); cursor:pointer; }
+  .pass:hover { border-color:var(--accent); }
+  .pass.sel { border-color:var(--accent); background:rgba(74,168,255,.12); }
+  .pass .date { grid-column:1 / 6; color:var(--dim); font-size:12.5px; margin-bottom:2px; display:flex; gap:8px; align-items:center; }
+  .pass .date em { font-style:normal; color:var(--ok); font-size:11.5px; background:rgba(53,224,138,.12); padding:1px 8px; border-radius:99px; }
+  .pass small { display:block; font-size:10.5px; letter-spacing:.06em; font-weight:700; }
+  .pass .t { font-size:15px; }
+  .c-rise { color:var(--ok); } .c-max { color:var(--accent); } .c-set { color:var(--warn); }
+  .pass .el small { color:var(--dim); font-weight:400; letter-spacing:0; }
+  .pass .el span { font-size:15px; }
+  .pass .chev { color:var(--dim); }
+  .empty { color:var(--dim); padding:10px 0; }
+
+  /* ---------- сцена ---------- */
+  #stage { position:relative; border-radius:16px; overflow:hidden; border:1px solid var(--line); min-height:420px;
+    background:radial-gradient(900px 500px at 50% 40%, #07122b 0%, #02040c 80%); }
+  #stage canvas { display:block; }
+  #labels { position:absolute; inset:0; pointer-events:none; }
+  #ui { position:absolute; inset:0; pointer-events:none; }
+  #ui > * { pointer-events:auto; position:absolute; }
+  .glass { background:var(--panel); border:1px solid var(--line); border-radius:14px; backdrop-filter:blur(10px); }
+  #topCard { top:14px; left:14px; padding:12px 14px; display:flex; align-items:center; gap:14px; }
+  #topCard b { font-size:15px; display:block; }
+  #topCard small { color:var(--ok); }
+  #topCard .btns { display:flex; gap:8px; }
+  #topCard .icon-btn { width:34px; height:34px; font-size:12px; }
+  #compass { top:14px; right:14px; width:92px; height:92px; border-radius:50%; padding:0; }
+  #posCard { right:14px; top:122px; width:236px; padding:12px 14px; }
+  #posCard .row, .rows .row { display:flex; justify-content:space-between; padding:3px 0; }
+  .row span:first-child { color:var(--dim); }
+  #legend { right:14px; bottom:14px; width:236px; padding:12px 14px; }
+  #legend .lg { display:flex; align-items:center; gap:10px; padding:3px 0; color:var(--dim); }
+  .dot { width:10px; height:10px; border-radius:50%; flex:none; }
+  .ln { width:14px; height:2px; flex:none; }
+  #zoom { left:14px; bottom:14px; display:flex; flex-direction:column; overflow:hidden; border-radius:12px; }
+  #zoom button { width:38px; height:38px; background:none; border:0; font-size:20px; }
+  #zoom button + button { border-top:1px solid var(--line); }
+  #zoom button:hover { background:var(--panel2); }
+  #beamInfo { left:50%; bottom:14px; transform:translateX(-50%); padding:9px 16px; text-align:center; white-space:nowrap; }
+  #beamInfo b { font-size:20px; color:var(--accent2); }
+  .lbl { color:#fff; font-size:12.5px; text-shadow:0 0 6px #000, 0 0 3px #000; margin:-22px 0 0 44px; white-space:nowrap; }
+  .lbl.sat { color:#ffe08a; }
+
+  /* ---------- нижній ряд ---------- */
+  .bottom { grid-column:1 / 3; display:grid; grid-template-columns:1.5fr 1fr 1fr; gap:14px; min-height:0; }
+  .bottom .card { display:flex; flex-direction:column; min-height:0; }
+  .chart { position:relative; flex:1; min-height:0; }
+  .chart canvas { position:absolute; inset:0; width:100%; height:100%; }
+  .rows .row { padding:9px 0; border-top:1px solid var(--line); }
+  .rows .row:first-child { border-top:0; }
+
+  /* ---------- діалоги ---------- */
+  dialog { background:#0a1226; color:var(--text); border:1px solid var(--line); border-radius:16px; padding:22px 24px;
+    width:min(720px, 92vw); max-height:86vh; }
+  dialog::backdrop { background:rgba(0,0,0,.6); backdrop-filter:blur(3px); }
+  dialog h2 { margin:0 0 14px; font-size:18px; }
+  dialog .close { position:absolute; top:14px; right:16px; background:none; border:0; font-size:20px; color:var(--dim); }
+  dialog p { color:var(--dim); line-height:1.55; }
+  input, select { background:rgba(255,255,255,.06); color:var(--text); border:1px solid var(--line); border-radius:8px;
+    padding:8px 10px; font:inherit; width:100%; }
+  label.f { display:block; color:var(--dim); font-size:12.5px; margin:10px 0 4px; }
+  .btn { padding:9px 16px; border-radius:9px; border:1px solid var(--line); background:var(--panel2); }
+  .btn:hover { border-color:var(--accent); }
+  .btn.primary { background:rgba(74,168,255,.2); border-color:var(--accent); }
+  .btns-row { display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; color:var(--dim); font-weight:500; padding:6px 8px; }
+  td { padding:8px; border-top:1px solid var(--line); }
+  tr.clk { cursor:pointer; } tr.clk:hover td { background:var(--panel2); }
+  .scroll { max-height:50vh; overflow:auto; }
+
+  @media (max-width:1100px) {
+    #app { grid-template-columns:1fr; grid-template-rows:60px auto 1fr; }
+    header { grid-column:1; } nav { display:none; }
+    aside { display:flex; gap:8px; overflow-x:auto; padding:8px; border-right:0; border-bottom:1px solid var(--line); }
+    .sat-item { width:auto; white-space:nowrap; margin:0; } .add-btn { width:auto; margin:0; white-space:nowrap; }
+    main { grid-template-columns:1fr; grid-template-rows:auto 520px auto; }
+    .bottom { grid-column:1; grid-template-columns:1fr; } .bottom .card { height:250px; }
+    #posCard, #legend { display:none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(-30 12 12)"/></svg>
+      SkyTrack
+    </div>
+    <nav>
+      <button class="on" data-nav="home">Головна</button>
+      <button data-nav="passes">Прольоти</button>
+      <button data-nav="satellite">Супутник</button>
+      <button data-nav="about">Про проєкт</button>
+    </nav>
+    <div class="spacer"></div>
+    <button class="chip" id="locChip" title="Змінити місце спостереження">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+      <span id="locName">—</span>
+    </button>
+    <button class="icon-btn" id="gear" title="Налаштування місця">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>
+    </button>
+  </header>
+
+  <aside id="sidebar"></aside>
+
+  <main>
+    <div class="left">
+      <section class="card">
+        <div class="hero">
+          <div class="pic"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="9.5" y="9" width="5" height="6" rx="1"/><path d="M2.5 9.5h5v5h-5zM16.5 9.5h5v5h-5zM7.5 12h2M14.5 12h2M12 9V5M12 15v4"/></svg></div>
+          <div>
+            <h2 id="hName">—</h2>
+            <div class="sub" id="hDesc">&nbsp;</div>
+            <span class="status" id="hStatus">—</span>
+          </div>
+        </div>
+        <div class="stats">
+          <div><small>Висота</small><b><span id="stAlt">—</span> <i>км</i></b></div>
+          <div><small>Швидкість</small><b><span id="stSpd">—</span> <i>км/с</i></b></div>
+          <div><small>Період</small><b><span id="stPer">—</span> <i>хв</i></b></div>
+          <div><small>NORAD ID</small><b id="stId">—</b></div>
+        </div>
+      </section>
+
+      <section class="card" style="flex:1; overflow:auto">
+        <h3>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+          Найближчі прольоти
+          <button class="link" id="allPasses">Усі</button>
+        </h3>
+        <div id="passList"><div class="empty">Завантаження…</div></div>
+      </section>
+    </div>
+
+    <section id="stage">
+      <div id="labels"></div>
+      <div id="ui">
+        <div id="topCard" class="glass">
+          <div><b id="tcName">—</b><small>● наживо</small></div>
+          <div class="btns">
+            <button class="icon-btn" id="focusBtn" title="Камера: місце спостереження / супутник">🎯</button>
+            <button class="icon-btn" id="fsBtn" title="На весь екран">⛶</button>
+          </div>
+        </div>
+
+        <div id="compass" class="glass" title="Напрямок на супутник">
+          <svg viewBox="0 0 100 100" width="92" height="92">
+            <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(110,150,255,.3)"/>
+            <g fill="#9fb2dd" font-size="11" text-anchor="middle" font-family="system-ui">
+              <text x="50" y="17">N</text><text x="86" y="54">E</text><text x="50" y="92">S</text><text x="14" y="54">W</text>
+            </g>
+            <g id="needle" style="transform-origin:50px 50px; transition:transform .6s">
+              <path d="M50 22 L56 50 L44 50 Z" fill="#ff5470"/>
+              <path d="M50 78 L56 50 L44 50 Z" fill="#c6d3f5" opacity=".6"/>
+            </g>
+            <circle cx="50" cy="50" r="3.5" fill="#fff"/>
+          </svg>
+        </div>
+
+        <div id="posCard" class="glass">
+          <h3 style="margin:0 0 8px">Поточне положення</h3>
+          <div class="row"><span>Широта</span><b id="pLat">—</b></div>
+          <div class="row"><span>Довгота</span><b id="pLon">—</b></div>
+          <div class="row"><span>Висота</span><b id="pAlt">—</b></div>
+          <div class="row"><span>Кут місця</span><b id="pEl">—</b></div>
+          <div class="row"><span>Азимут</span><b id="pAz">—</b></div>
+          <div class="row"><span>RX</span><b id="pRx">—</b></div>
+          <div class="row"><span>TX</span><b id="pTx">—</b></div>
+        </div>
+
+        <div id="legend" class="glass">
+          <div class="lg"><span class="dot" style="background:#ffd35e"></span>Положення супутника</div>
+          <div class="lg"><span class="ln" style="background:#9fe8ff"></span>Орбіта</div>
+          <div class="lg"><span class="dot" style="background:#4da3ff"></span>Місце спостереження</div>
+          <div class="lg"><span class="ln" style="background:#35e08a"></span>Лінія на супутник</div>
+          <div class="lg"><span class="dot" style="background:linear-gradient(90deg,#f5d77a 50%,#0a1022 50%);border:1px solid #456"></span>День / ніч</div>
+        </div>
+
+        <div id="zoom" class="glass"><button id="zin">+</button><button id="zout">−</button></div>
+
+        <div id="beamInfo" class="glass"><small style="color:var(--dim)">відстань до супутника</small><br><b id="bDist">—</b> <span style="color:var(--dim)">км</span></div>
+      </div>
+    </section>
+
+    <div class="bottom">
+      <section class="card">
+        <h3>Висота супутника під час проходу <span class="r" id="elInfo"></span></h3>
+        <div class="chart"><canvas id="elevChart"></canvas></div>
+      </section>
+      <section class="card">
+        <h3>Небесна карта (для антени) <span class="r" id="skyInfo"></span></h3>
+        <div class="chart"><canvas id="skyChart"></canvas></div>
+      </section>
+      <section class="card">
+        <h3>Швидка інформація</h3>
+        <div class="rows">
+          <div class="row"><span>🌅 Схід Сонця</span><b id="qRise">—</b></div>
+          <div class="row"><span>🌇 Захід Сонця</span><b id="qSet">—</b></div>
+          <div class="row"><span>🌙 Фаза Місяця</span><b id="qMoon" style="text-align:right">—</b></div>
+          <div class="row"><span>⛅ Погода</span><b id="qWx">—</b></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<dialog id="dlg"><button class="close" id="dlgClose">✕</button><div id="dlgBody"></div></dialog>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+/* =====================  допоміжні  ===================== */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const R_EARTH = 6371;
+const tfmt = (d, sec = false) => d.toLocaleTimeString('uk-UA',
+  { hour:'2-digit', minute:'2-digit', ...(sec ? { second:'2-digit' } : {}) });
+const dayLabel = d => {
+  const a = new Date(d); a.setHours(0,0,0,0);
+  const b = new Date(); b.setHours(0,0,0,0);
+  const diff = Math.round((a - b) / 864e5);
+  const date = d.toLocaleDateString('uk-UA', { day:'numeric', month:'short' });
+  return (diff === 0 ? 'Сьогодні' : diff === 1 ? 'Завтра' : d.toLocaleDateString('uk-UA', { weekday:'short' })) + ', ' + date;
+};
+const fmtLat = v => Math.abs(v).toFixed(2) + '° ' + (v >= 0 ? 'пн.ш.' : 'пд.ш.');
+const fmtLon = v => Math.abs(v).toFixed(2) + '° ' + (v >= 0 ? 'сх.д.' : 'зх.д.');
+
+// географічні координати -> точка в 3D (радіус Землі = 1)
+function toXYZ(lat, lon, h = 0) {
+  const r = (R_EARTH + h) / R_EARTH;
+  const la = THREE.MathUtils.degToRad(lat), lo = THREE.MathUtils.degToRad(lon);
+  return new THREE.Vector3(r * Math.cos(la) * Math.cos(lo), r * Math.sin(la), -r * Math.cos(la) * Math.sin(lo));
+}
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  if (!r.ok) throw new Error(path + ' → ' + r.status);
+  return r.json();
+}
+
+/* =====================  стан  ===================== */
+const DEFAULT_OBS = { lat: 50.4497, lon: 30.4608, name: 'Київ, КПІ' };
+let observer = { ...DEFAULT_OBS };
+try {
+  const s = JSON.parse(localStorage.getItem('skytrack.obs') || 'null');
+  if (s && isFinite(s.lat) && isFinite(s.lon)) observer = s;
+} catch (e) {}
+
+let sats = [];
+let satKey = 'ISS';
+try { satKey = localStorage.getItem('skytrack.sat') || 'ISS'; } catch (e) {}
+let info = null, passes = [], profile = null, selectedRise = null, lastState = null;
+let targetPos = new THREE.Vector3(2, 0, 0), firstFix = true;
+
+const q = () => `sat=${encodeURIComponent(satKey)}&lat=${observer.lat}&lon=${observer.lon}`;
+
+/* =====================  3D-сцена  ===================== */
+const stage = $('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+stage.prepend(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer({ element: $('labels') });
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, 1, 0.01, 500);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.minDistance = 1.25;
+controls.maxDistance = 10;
+controls.enablePan = false;
+
+const sunLight = new THREE.DirectionalLight(0xffffff, 2.4);
+scene.add(sunLight, new THREE.AmbientLight(0x6a7ab0, 0.8));
+
+// зорі
+{
+  const pts = [];
+  for (let i = 0; i < 2200; i++) {
+    const v = new THREE.Vector3().randomDirection().multiplyScalar(60 + Math.random() * 60);
+    pts.push(v.x, v.y, v.z);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+  scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 0.22, transparent: true, opacity: 0.85 })));
+}
+
+// Земля: день / ніч
+const solid = (r, g, b) => { const t = new THREE.DataTexture(new Uint8Array([r, g, b, 255]), 1, 1); t.colorSpace = THREE.SRGBColorSpace; t.needsUpdate = true; return t; };
+const earthMat = new THREE.ShaderMaterial({
+  uniforms: { dayMap: { value: solid(25, 60, 120) }, nightMap: { value: solid(0, 0, 0) }, sunDir: { value: new THREE.Vector3(1, 0, 0) } },
+  vertexShader: `
+    varying vec2 vUv; varying vec3 vN;
+    void main() { vUv = uv; vN = normalize(mat3(modelMatrix) * normal);
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `
+    uniform sampler2D dayMap; uniform sampler2D nightMap; uniform vec3 sunDir;
+    varying vec2 vUv; varying vec3 vN;
+    void main() {
+      float d = dot(normalize(vN), normalize(sunDir));
+      vec3 day = texture2D(dayMap, vUv).rgb;
+      vec3 night = texture2D(nightMap, vUv).rgb;
+      float t = smoothstep(-0.12, 0.18, d);
+      vec3 dayCol = day * (0.35 + 0.8 * clamp(d, 0.0, 1.0));
+      vec3 nightCol = day * 0.05 + night * 1.5 * vec3(1.0, 0.82, 0.5);
+      vec3 col = mix(nightCol, dayCol, t);
+      col += vec3(1.0, 0.45, 0.2) * day * smoothstep(0.0, 0.1, d) * (1.0 - smoothstep(0.1, 0.3, d)) * 0.25;
+      gl_FragColor = vec4(col, 1.0);
+      #include <colorspace_fragment>
+    }`
+});
+const earth = new THREE.Mesh(new THREE.SphereGeometry(1, 128, 128), earthMat);
+scene.add(earth);
+
+const loader = new THREE.TextureLoader();
+const TEX = 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/';
+loader.load(TEX + 'earth_atmos_2048.jpg', t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; earthMat.uniforms.dayMap.value = t; },
+  undefined, () => console.warn('Текстура Землі не завантажилась'));
+loader.load(TEX + 'earth_lights_2048.png', t => { t.colorSpace = THREE.SRGBColorSpace; earthMat.uniforms.nightMap.value = t; },
+  undefined, () => console.warn('Нічна текстура не завантажилась'));
+
+// атмосфера
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(1.09, 64, 64), new THREE.ShaderMaterial({
+  vertexShader: `varying vec3 vN; void main() { vN = normalize(normalMatrix * normal);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `varying vec3 vN; void main() {
+    float i = pow(clamp(-dot(vN, vec3(0.0, 0.0, 1.0)) * 2.6, 0.0, 1.0), 1.8);
+    gl_FragColor = vec4(0.25, 0.55, 1.0, 1.0) * i; }`,
+  blending: THREE.AdditiveBlending, side: THREE.BackSide, transparent: true, depthWrite: false
+})));
+
+// світіння
+function glowTexture(color) {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d'), g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, color); g.addColorStop(0.25, color.replace('1)', '.35)')); g.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+}
+
+// модель супутника
+const satGroup = new THREE.Group();
+{
+  const gold = new THREE.MeshStandardMaterial({ color: 0xd9c79a, metalness: 0.6, roughness: 0.35 });
+  const panel = new THREE.MeshStandardMaterial({ color: 0x2f62d6, metalness: 0.4, roughness: 0.3, emissive: 0x0b1d5c });
+  const add = (geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); satGroup.add(m); };
+  add(new THREE.BoxGeometry(0.014, 0.014, 0.04), gold);
+  add(new THREE.BoxGeometry(0.11, 0.003, 0.003), gold);
+  for (const s of [-1, 1]) for (const k of [0.034, 0.07]) add(new THREE.BoxGeometry(0.03, 0.001, 0.02), panel, s * k, 0, 0);
+  add(new THREE.CylinderGeometry(0.0015, 0.0015, 0.035, 8), gold, 0, 0.02, 0);
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture('rgba(255,211,94,1)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  sprite.scale.setScalar(0.22);
+  satGroup.add(sprite);
+}
+scene.add(satGroup);
+const satLabelDiv = document.createElement('div');
+satLabelDiv.className = 'lbl sat';
+const satLabel = new CSS2DObject(satLabelDiv);
+satGroup.add(satLabel);
+
+// місце спостереження
+const obsGroup = new THREE.Group();
+const obsDot = new THREE.Mesh(new THREE.SphereGeometry(0.011, 20, 20), new THREE.MeshBasicMaterial({ color: 0x4da3ff }));
+const obsRing = new THREE.Mesh(new THREE.RingGeometry(0.02, 0.026, 40), new THREE.MeshBasicMaterial({ color: 0x4da3ff, transparent: true, opacity: 0.9, side: THREE.DoubleSide }));
+const obsDisc = new THREE.Mesh(new THREE.CircleGeometry(0.05, 40), new THREE.MeshBasicMaterial({ color: 0x4da3ff, transparent: true, opacity: 0.22, side: THREE.DoubleSide }));
+obsGroup.add(obsDot, obsRing, obsDisc);
+scene.add(obsGroup);
+const obsLabelDiv = document.createElement('div');
+obsLabelDiv.className = 'lbl';
+obsGroup.add(new CSS2DObject(obsLabelDiv));
+
+// лінія спостерігач -> супутник (оновлюється на місці)
+const beamGeo = new THREE.BufferGeometry();
+beamGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+const beam = new THREE.Line(beamGeo, new THREE.LineBasicMaterial({ color: 0x35e08a, transparent: true, opacity: 0.9 }));
+beam.frustumCulled = false;
+scene.add(beam);
+
+// зона радіовидимості під супутником
+const FOOT_N = 96;
+const footGeo = new THREE.BufferGeometry();
+footGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(FOOT_N * 3), 3));
+const footprint = new THREE.LineLoop(footGeo, new THREE.LineBasicMaterial({ color: 0xffd35e, transparent: true, opacity: 0.45 }));
+footprint.frustumCulled = false;
+scene.add(footprint);
+function updateFootprint(center, h) {
+  const rho = Math.acos(R_EARTH / (R_EARTH + h));               // кутовий радіус зони видимості
+  const c = center.clone().normalize();
+  const a = Math.abs(c.y) < 0.95 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
+  const u = new THREE.Vector3().crossVectors(c, a).normalize();
+  const v = new THREE.Vector3().crossVectors(c, u);
+  const pos = footGeo.attributes.position;
+  for (let i = 0; i < FOOT_N; i++) {
+    const th = i / FOOT_N * Math.PI * 2;
+    const p = c.clone().multiplyScalar(Math.cos(rho))
+      .addScaledVector(u, Math.sin(rho) * Math.cos(th)).addScaledVector(v, Math.sin(rho) * Math.sin(th)).multiplyScalar(1.002);
+    pos.setXYZ(i, p.x, p.y, p.z);
+  }
+  pos.needsUpdate = true;
+}
+
+// орбіта
+let trackPast = null, trackFuture = null;
+function setTrack(t) {
+  for (const l of [trackPast, trackFuture]) if (l) { scene.remove(l); l.geometry.dispose(); }
+  const past = [], fut = [];
+  t.lat.forEach((la, i) => {
+    if (la === null) return;
+    const p = toXYZ(la, t.lon[i], t.height_km[i]);
+    if (t.offset_s[i] <= 0) past.push(p);
+    if (t.offset_s[i] >= 0) fut.push(p);
+  });
+  trackPast = new THREE.Line(new THREE.BufferGeometry().setFromPoints(past), new THREE.LineBasicMaterial({ color: 0x4a6fb8, transparent: true, opacity: 0.55 }));
+  trackFuture = new THREE.Line(new THREE.BufferGeometry().setFromPoints(fut), new THREE.LineBasicMaterial({ color: 0x9fe8ff, transparent: true, opacity: 0.95 }));
+  scene.add(trackPast, trackFuture);
+}
+
+function placeObserver() {
+  const p = toXYZ(observer.lat, observer.lon, 0);
+  obsGroup.position.copy(p.clone().multiplyScalar(1.002));
+  const out = p.clone().multiplyScalar(2);
+  obsRing.lookAt(out); obsDisc.lookAt(out);
+  obsLabelDiv.textContent = observer.name.split(',')[0];
+}
+
+// камера
+let camGoal = null, focusMode = 'observer';
+controls.addEventListener('start', () => { camGoal = null; });
+function flyTo(v, dist = 3.1) { camGoal = v.clone().normalize().multiplyScalar(dist); }
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h); labelRenderer.setSize(w, h);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage);
+resize();
+
+$('zin').onclick = () => { camGoal = null; camera.position.multiplyScalar(0.8); };
+$('zout').onclick = () => { camGoal = null; camera.position.multiplyScalar(1.25); };
+$('focusBtn').onclick = () => {
+  if (focusMode === 'observer') { focusMode = 'satellite'; flyTo(satGroup.position); }
+  else { focusMode = 'observer'; flyTo(obsGroup.position); }
+};
+$('fsBtn').onclick = () => {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else if (stage.requestFullscreen) stage.requestFullscreen();
+};
+
+/* =====================  оновлення інтерфейсу  ===================== */
+function renderSidebar() {
+  const icon = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9.5" y="9" width="5" height="6" rx="1"/><path d="M2.5 9.5h5v5h-5zM16.5 9.5h5v5h-5zM7.5 12h2M14.5 12h2M12 9V5M12 15v4"/></svg>';
+  $('sidebar').innerHTML = sats.map(s =>
+    `<button class="sat-item${s.key === satKey ? ' active' : ''}${s.available ? '' : ' off'}" data-key="${esc(s.key)}" data-group="${esc(s.group)}"
+       title="${s.available ? esc(s.desc) : 'Немає в завантажених TLE'}">${icon}<span class="nm">${esc(s.label)}</span></button>`).join('') +
+    `<button class="add-btn" id="addSat"><span style="font-size:18px">+</span> Додати супутник</button>`;
+  $('sidebar').querySelectorAll('.sat-item').forEach(b => b.onclick = () => selectSat(b.dataset.key));
+  $('addSat').onclick = openAddDialog;
+}
+
+function renderHero() {
+  const s = sats.find(x => x.key === satKey);
+  $('hName').textContent = info ? info.name : (s ? s.label : satKey);
+  $('hDesc').textContent = s ? s.desc : ' ';
+  $('tcName').textContent = info ? info.name : satKey;
+  satLabelDiv.textContent = s ? s.label.split(' ')[0] : satKey;
+  if (info) { $('stPer').textContent = info.period_min.toFixed(1); $('stId').textContent = info.norad; }
+}
+
+function statusFor(s) {
+  if (s.visible) return { t: 'Над горизонтом зараз', c: 'ok' };
+  const p = passes.find(p => Date.parse(p.rise) > Date.now());
+  if (!p) return { t: 'Найближчим часом проходів немає', c: '' };
+  const m = Math.max(0, Math.round((Date.parse(p.rise) - Date.now()) / 60000));
+  if (m <= 60) return { t: `Скоро видно · через ${m} хв`, c: 'warn' };
+  return { t: `Наступний проліт через ${Math.floor(m / 60)} г ${m % 60} хв`, c: '' };
+}
+
+function updateHud(s) {
+  lastState = s;
+  $('stAlt').textContent = Math.round(s.height_km);
+  $('stSpd').textContent = s.speed_kms.toFixed(2);
+  const st = statusFor(s);
+  $('hStatus').textContent = st.t; $('hStatus').className = 'status ' + st.c;
+  $('pLat').textContent = fmtLat(s.sub_lat); $('pLon').textContent = fmtLon(s.sub_lon);
+  $('pAlt').textContent = Math.round(s.height_km) + ' км';
+  $('pEl').textContent = s.el.toFixed(1) + '°'; $('pAz').textContent = s.az.toFixed(1) + '°';
+  $('pRx').textContent = s.rx_mhz ? s.rx_mhz.toFixed(4) + ' МГц' : '—';
+  $('pTx').textContent = s.tx_mhz ? s.tx_mhz.toFixed(4) + ' МГц' : '—';
+  $('bDist').textContent = Math.round(s.dist_km).toLocaleString('uk-UA');
+  $('needle').style.transform = `rotate(${s.az}deg)`;
+  beam.material.color.set(s.visible ? 0x35e08a : 0x8a3a46);
+  targetPos = toXYZ(s.sub_lat, s.sub_lon, s.height_km);
+  if (firstFix) { satGroup.position.copy(targetPos); firstFix = false; }
+  const sd = toXYZ(s.sun_lat, s.sun_lon, 0).normalize();
+  earthMat.uniforms.sunDir.value.copy(sd);
+  sunLight.position.copy(sd.multiplyScalar(10));
+  updateFootprint(targetPos, s.height_km);
+  drawCharts();
+}
+
+function renderPasses() {
+  const list = $('passList');
+  if (!passes.length) { list.innerHTML = '<div class="empty">Немає прольотів із висотою ≥ 10° у найближчі 24 години.</div>'; return; }
+  list.innerHTML = passes.slice(0, 3).map(p => {
+    const r = new Date(p.rise), m = new Date(p.max), e = new Date(p.set);
+    return `<div class="pass${p.rise === selectedRise ? ' sel' : ''}" data-rise="${esc(p.rise)}">
+      <div class="date">${dayLabel(r)}${p.ongoing ? '<em>триває зараз</em>' : ''}</div>
+      <div><small class="c-rise">ПОЧАТОК</small><span class="t">${tfmt(r, true)}</span></div>
+      <div><small class="c-max">МАКС</small><span class="t">${tfmt(m, true)}</span></div>
+      <div><small class="c-set">КІНЕЦЬ</small><span class="t">${tfmt(e, true)}</span></div>
+      <div class="el"><small>Висота</small><span>${p.max_el.toFixed(1)}°</span></div>
+      <div class="chev">›</div></div>`;
+  }).join('');
+  list.querySelectorAll('.pass').forEach(el => el.onclick = () => { selectedRise = el.dataset.rise; renderPasses(); refreshProfile(); });
+}
+
+/* =====================  графіки  ===================== */
+function prep(c) {
+  const dpr = Math.min(devicePixelRatio || 1, 2), w = c.clientWidth, h = c.clientHeight;
+  if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+  const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, w, h);
+  return { x, w, h };
+}
+function drawElev() {
+  const { x, w, h } = prep($('elevChart'));
+  x.font = '11px system-ui'; x.fillStyle = '#7f90b8';
+  if (!profile) { x.fillText('Немає даних про проліт', 8, 22); return; }
+  const L = 34, Rr = 14, T = 22, B = 24, pw = w - L - Rr, ph = h - T - B;
+  const dur = profile.offset_s[profile.offset_s.length - 1] || 1;
+  const maxEl = profile.max_el, ymax = maxEl <= 30 ? 30 : maxEl <= 60 ? 60 : 90;
+  const X = o => L + o / dur * pw, Y = e => T + ph - Math.max(e, 0) / ymax * ph;
+
+  x.strokeStyle = 'rgba(120,160,255,.14)'; x.lineWidth = 1; x.textAlign = 'left';
+  for (let i = 0; i <= 3; i++) {
+    const e = ymax / 3 * i, y = Y(e);
+    x.beginPath(); x.moveTo(L, y); x.lineTo(L + pw, y); x.stroke();
+    x.fillText(Math.round(e) + '°', 4, y + 4);
+  }
+  const riseMs = Date.parse(profile.rise), every = dur > 600 ? 120 : 60;
+  x.textAlign = 'center';
+  for (let o = 0; o <= dur; o += every) x.fillText(tfmt(new Date(riseMs + o * 1000)), X(o), h - 6);
+
+  const g = x.createLinearGradient(0, T, 0, T + ph);
+  g.addColorStop(0, 'rgba(74,168,255,.38)'); g.addColorStop(1, 'rgba(74,168,255,0)');
+  x.beginPath();
+  profile.offset_s.forEach((o, i) => { const px = X(o), py = Y(profile.el[i]); i ? x.lineTo(px, py) : x.moveTo(px, py); });
+  x.strokeStyle = '#4aa8ff'; x.lineWidth = 2; x.stroke();
+  x.lineTo(X(dur), Y(0)); x.lineTo(X(0), Y(0)); x.closePath(); x.fillStyle = g; x.fill();
+
+  // максимум
+  let mi = 0; profile.el.forEach((e, i) => { if (e > profile.el[mi]) mi = i; });
+  const mx = X(profile.offset_s[mi]), my = Y(profile.el[mi]);
+  x.fillStyle = '#fff'; x.beginPath(); x.arc(mx, my, 4, 0, 7); x.fill();
+  const txt = profile.el[mi].toFixed(1) + '°', tw = x.measureText(txt).width + 14;
+  x.fillStyle = 'rgba(8,16,36,.95)'; x.strokeStyle = 'rgba(110,150,255,.4)';
+  x.beginPath(); x.roundRect(mx - tw / 2, my - 26, tw, 18, 6); x.fill(); x.stroke();
+  x.fillStyle = '#dce6ff'; x.fillText(txt, mx, my - 13);
+
+  // «зараз»
+  const nowO = (Date.now() - riseMs) / 1000;
+  if (nowO >= 0 && nowO <= dur) {
+    x.setLineDash([4, 4]); x.strokeStyle = '#35e08a'; x.beginPath(); x.moveTo(X(nowO), T); x.lineTo(X(nowO), T + ph); x.stroke(); x.setLineDash([]);
+    x.fillStyle = '#35e08a'; x.fillText('зараз', X(nowO), T - 6);
+  }
+}
+function drawSky() {
+  const { x, w, h } = prep($('skyChart'));
+  const R = Math.min(w, h) / 2 - 20, cx = w / 2, cy = h / 2 + 2;
+  const P = (az, el) => { const r = R * (90 - Math.max(el, 0)) / 90, a = az * Math.PI / 180; return [cx + r * Math.sin(a), cy - r * Math.cos(a)]; };
+  x.lineWidth = 1; x.strokeStyle = 'rgba(120,160,255,.22)';
+  for (const el of [0, 30, 60]) { x.beginPath(); x.arc(cx, cy, R * (90 - el) / 90, 0, 7); x.stroke(); }
+  x.beginPath(); x.moveTo(cx - R, cy); x.lineTo(cx + R, cy); x.moveTo(cx, cy - R); x.lineTo(cx, cy + R); x.stroke();
+  x.fillStyle = '#9fb2dd'; x.font = '11px system-ui'; x.textAlign = 'center';
+  x.fillText('N', cx, cy - R - 6); x.fillText('S', cx, cy + R + 14); x.fillText('E', cx + R + 10, cy + 4); x.fillText('W', cx - R - 10, cy + 4);
+  if (profile) {
+    x.beginPath();
+    profile.az.forEach((az, i) => { const [px, py] = P(az, profile.el[i]); i ? x.lineTo(px, py) : x.moveTo(px, py); });
+    x.strokeStyle = '#4aa8ff'; x.lineWidth = 2; x.stroke();
+    const n = profile.az.length - 1;
+    const [sx, sy] = P(profile.az[0], 0), [ex, ey] = P(profile.az[n], 0);
+    x.fillStyle = '#35e08a'; x.beginPath(); x.arc(sx, sy, 4, 0, 7); x.fill();
+    x.fillStyle = '#ffc95e'; x.beginPath(); x.arc(ex, ey, 4, 0, 7); x.fill();
+  }
+  if (lastState && lastState.el > -2) {
+    const [px, py] = P(lastState.az, lastState.el);
+    const g = x.createRadialGradient(px, py, 0, px, py, 14);
+    g.addColorStop(0, 'rgba(255,211,94,.9)'); g.addColorStop(1, 'rgba(255,211,94,0)');
+    x.fillStyle = g; x.beginPath(); x.arc(px, py, 14, 0, 7); x.fill();
+    x.fillStyle = '#ffd35e'; x.beginPath(); x.arc(px, py, 4, 0, 7); x.fill();
+  }
+}
+function drawCharts() {
+  drawElev(); drawSky();
+  if (profile) {
+    const n = profile.az.length - 1;
+    $('elInfo').textContent = 'Макс: ' + profile.max_el.toFixed(1) + '°';
+    $('skyInfo').textContent = `Az ${profile.az[0].toFixed(0)}° → ${profile.az[n].toFixed(0)}°`;
+  } else { $('elInfo').textContent = ''; $('skyInfo').textContent = ''; }
+}
+
+/* =====================  дані  ===================== */
+async function refreshState() {
+  try { updateHud(await api(`/api/state?${q()}`)); } catch (e) { console.error(e); }
+}
+async function refreshInfo() {
+  try { info = await api(`/api/info?sat=${encodeURIComponent(satKey)}`); } catch (e) { info = null; }
+  renderHero();
+}
+async function refreshTrack() {
+  try {
+    const ahead = Math.ceil((info ? info.period_min : 100) + 3);
+    setTrack(await api(`/api/track?sat=${encodeURIComponent(satKey)}&back_min=25&ahead_min=${ahead}`));
+  } catch (e) { console.error(e); }
+}
+async function refreshProfile() {
+  try {
+    const rise = selectedRise ? `&rise=${encodeURIComponent(selectedRise)}` : '';
+    profile = await api(`/api/profile?${q()}${rise}`);
+  } catch (e) { profile = null; }
+  drawCharts();
+}
+async function refreshPasses() {
+  try { passes = await api(`/api/passes?${q()}&hours=24&min_el=10`); } catch (e) { passes = []; }
+  if (!passes.some(p => p.rise === selectedRise)) selectedRise = passes.length ? passes[0].rise : null;
+  renderPasses();
+  await refreshProfile();
+}
+async function refreshQuick() {
+  try {
+    const d = await api(`/api/quick?lat=${observer.lat}&lon=${observer.lon}`);
+    $('qRise').textContent = d.sunrise ? tfmt(new Date(d.sunrise)) : '—';
+    $('qSet').textContent = d.sunset ? tfmt(new Date(d.sunset)) : '—';
+    $('qMoon').textContent = `${d.moon.name} (${Math.round(d.moon.illumination)}%)`;
+  } catch (e) { console.error(e); }
+}
+const WX = c => c === 0 ? 'ясно' : c <= 2 ? 'мінлива хмарність' : c === 3 ? 'хмарно' : c <= 48 ? 'туман' : c <= 57 ? 'мряка' : c <= 67 ? 'дощ'
+  : c <= 77 ? 'сніг' : c <= 82 ? 'зливи' : c <= 86 ? 'снігопад' : 'гроза';
+async function refreshWeather() {
+  try {
+    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${observer.lat}&longitude=${observer.lon}&current=temperature_2m,weather_code&timezone=auto`);
+    const d = (await r.json()).current;
+    $('qWx').textContent = `${Math.round(d.temperature_2m)}°C, ${WX(d.weather_code)}`;
+  } catch (e) { $('qWx').textContent = 'недоступно'; }
+}
+
+function refreshAll() {
+  refreshState(); refreshTrack(); refreshPasses();
+}
+async function selectSat(key) {
+  satKey = key; firstFix = true; passes = []; profile = null; selectedRise = null; info = null; lastState = null;
+  try { localStorage.setItem('skytrack.sat', key); } catch (e) {}
+  renderSidebar(); renderHero(); renderPasses(); drawCharts();
+  await refreshInfo();
+  refreshAll();
+}
+
+function setObserver(lat, lon, name) {
+  observer = { lat, lon, name };
+  try { localStorage.setItem('skytrack.obs', JSON.stringify(observer)); } catch (e) {}
+  $('locName').textContent = name; placeObserver();
+  if (focusMode === 'observer') flyTo(obsGroup.position);
+  refreshAll(); refreshQuick(); refreshWeather();
+}
+
+/* =====================  діалоги  ===================== */
+const dlg = $('dlg');
+const openDlg = html => { $('dlgBody').innerHTML = html; if (!dlg.open) dlg.showModal(); };
+$('dlgClose').onclick = () => dlg.close();
+dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+
+function openLocationDialog() {
+  openDlg(`<h2>Місце спостереження</h2>
+    <p>Усі азимути, кути місця, відстані й прольоти рахуються від цієї точки.</p>
+    <label class="f">Назва</label><input id="fName" value="${esc(observer.name)}">
+    <div style="display:flex;gap:12px"><div style="flex:1"><label class="f">Широта</label><input id="fLat" type="number" step="0.0001" value="${observer.lat}"></div>
+    <div style="flex:1"><label class="f">Довгота</label><input id="fLon" type="number" step="0.0001" value="${observer.lon}"></div></div>
+    <div class="btns-row">
+      <button class="btn primary" id="fApply">Застосувати</button>
+      <button class="btn" id="fGeo">📍 Моя геолокація</button>
+      <button class="btn" id="fDef">КПІ (за замовчуванням)</button>
+    </div><p id="fMsg" style="margin-bottom:0"></p>`);
+  $('fApply').onclick = () => {
+    const la = parseFloat($('fLat').value), lo = parseFloat($('fLon').value);
+    if (!isFinite(la) || !isFinite(lo) || Math.abs(la) > 90 || Math.abs(lo) > 180) { $('fMsg').textContent = 'Перевір координати.'; return; }
+    setObserver(la, lo, $('fName').value.trim() || 'Власна точка'); dlg.close();
+  };
+  $('fDef').onclick = () => { setObserver(DEFAULT_OBS.lat, DEFAULT_OBS.lon, DEFAULT_OBS.name); dlg.close(); };
+  $('fGeo').onclick = () => {
+    $('fMsg').textContent = 'Запитую геолокацію…';
+    navigator.geolocation.getCurrentPosition(
+      p => { setObserver(+p.coords.latitude.toFixed(5), +p.coords.longitude.toFixed(5), 'Моя геолокація'); dlg.close(); },
+      err => { $('fMsg').textContent = 'Не вдалося отримати геолокацію: ' + err.message; },
+      { enableHighAccuracy: true, timeout: 15000 });
+  };
+}
+$('locChip').onclick = $('gear').onclick = openLocationDialog;
+
+function openAddDialog() {
+  openDlg(`<h2>Додати супутник</h2>
+    <p>Введи NORAD-номер (наприклад, 43770 для AO-91, 7530 для OSCAR-7). TLE буде завантажено з CelesTrak.</p>
+    <label class="f">NORAD ID</label><input id="aId" type="number" min="1" placeholder="25544">
+    <div class="btns-row"><button class="btn primary" id="aGo">Додати</button></div><p id="aMsg"></p>`);
+  $('aGo').onclick = async () => {
+    const id = parseInt($('aId').value);
+    if (!id) { $('aMsg').textContent = 'Введи номер.'; return; }
+    $('aMsg').textContent = 'Завантажую…';
+    try {
+      const r = await api(`/api/satellites/add?catnr=${id}`, { method: 'POST' });
+      sats = await api('/api/satellites'); dlg.close(); selectSat(r.key);
+    } catch (e) { $('aMsg').textContent = 'Не вдалося додати: ' + e.message; }
+  };
+}
+
+async function openPassesDialog(minEl = 10) {
+  openDlg(`<h2>Прольоти · ${esc(info ? info.name : satKey)}</h2>
+    <label class="f">Мінімальна максимальна висота</label>
+    <select id="pMin" style="width:auto">${[0, 10, 20, 30, 50].map(v => `<option value="${v}"${v === minEl ? ' selected' : ''}>≥ ${v}°</option>`).join('')}</select>
+    <p>Прольоти на 72 години. Натисни на рядок, щоб побачити його на графіках.</p>
+    <div class="scroll"><table><thead><tr><th>Дата</th><th>Початок</th><th>Макс</th><th>Кінець</th><th>Висота</th><th>Az</th></tr></thead><tbody id="pRows"><tr><td colspan="6">Завантаження…</td></tr></tbody></table></div>`);
+  $('pMin').onchange = e => openPassesDialog(+e.target.value);
+  try {
+    const rows = await api(`/api/passes?${q()}&hours=72&min_el=${minEl}`);
+    $('pRows').innerHTML = rows.map(p => {
+      const r = new Date(p.rise);
+      return `<tr class="clk" data-rise="${esc(p.rise)}"><td>${dayLabel(r)}</td><td>${tfmt(r, true)}</td><td>${tfmt(new Date(p.max), true)}</td>
+        <td>${tfmt(new Date(p.set), true)}</td><td>${p.max_el.toFixed(1)}°</td><td>${p.rise_az.toFixed(0)}° → ${p.set_az.toFixed(0)}°</td></tr>`;
+    }).join('') || '<tr><td colspan="6">Немає прольотів</td></tr>';
+    $('pRows').querySelectorAll('tr.clk').forEach(tr => tr.onclick = () => { selectedRise = tr.dataset.rise; dlg.close(); refreshProfile(); renderPasses(); });
+  } catch (e) { $('pRows').innerHTML = '<tr><td colspan="6">Помилка: ' + esc(e.message) + '</td></tr>'; }
+}
+$('allPasses').onclick = () => openPassesDialog();
+
+async function openSatelliteDialog() {
+  await refreshInfo();
+  if (!info) { openDlg('<h2>Супутник</h2><p>Немає даних.</p>'); return; }
+  const f = v => v ? v + ' МГц' : '—';
+  openDlg(`<h2>${esc(info.name)}</h2><div class="rows">
+    <div class="row"><span>NORAD ID</span><b>${info.norad}</b></div>
+    <div class="row"><span>Період обертання</span><b>${info.period_min.toFixed(2)} хв</b></div>
+    <div class="row"><span>Нахил орбіти</span><b>${info.inclination_deg.toFixed(2)}°</b></div>
+    <div class="row"><span>Ексцентриситет</span><b>${info.eccentricity.toFixed(5)}</b></div>
+    <div class="row"><span>Висота зараз</span><b>${Math.round(info.altitude_km)} км</b></div>
+    <div class="row"><span>Швидкість</span><b>${info.speed_kms.toFixed(2)} км/с</b></div>
+    <div class="row"><span>Епоха TLE</span><b>${new Date(info.tle_epoch).toLocaleString('uk-UA')} (${info.tle_age_days.toFixed(1)} діб тому)</b></div>
+    <div class="row"><span>Downlink (RX)</span><b>${f(info.down_mhz)}</b></div>
+    <div class="row"><span>Uplink (TX)</span><b>${f(info.up_mhz)}</b></div></div>
+    <p>Частоти типові: перед зв'язком перевір актуальні на amsat.org. Якщо TLE старший за кілька діб, точність прольотів падає.</p>`);
+}
+function openAbout() {
+  openDlg(`<h2>Про проєкт</h2>
+    <p>SkyTrack — програмна частина системи наведення антени на супутники Землі: розрахунок траєкторії за TLE (Skyfield, SGP4),
+    азимут і кут місця для приводів антени, корекція Доплера для трансивера.</p>
+    <p>Дані орбіт — CelesTrak. День і ніч, схід і захід Сонця та фаза Місяця — наближені розрахунки (точність кілька хвилин).
+    Погода — Open-Meteo.</p>`);
+}
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
+  const k = b.dataset.nav;
+  if (k === 'passes') openPassesDialog(); else if (k === 'satellite') openSatelliteDialog(); else if (k === 'about') openAbout();
+});
+dlg.addEventListener('close', () => document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x.dataset.nav === 'home')));
+
+/* =====================  запуск  ===================== */
+$('locName').textContent = observer.name;
+placeObserver();
+camera.position.copy(obsGroup.position.clone().normalize().multiplyScalar(3.1));
+controls.update();
+
+try {
+  sats = await api('/api/satellites');
+  if (!sats.some(s => s.key === satKey)) satKey = sats[0] ? sats[0].key : 'ISS';
+} catch (e) { console.error(e); }
+renderSidebar();
+await refreshInfo();
+refreshAll(); refreshQuick(); refreshWeather();
+
+setInterval(refreshState, 1000);
+setInterval(refreshTrack, 60000);
+setInterval(refreshPasses, 300000);
+setInterval(refreshQuick, 600000);
+setInterval(refreshWeather, 900000);
+addEventListener('resize', drawCharts);
+
+const clock = new THREE.Clock();
+(function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+  satGroup.position.lerp(targetPos, 0.1);
+  satGroup.lookAt(0, 0, 0);
+  satGroup.scale.setScalar(THREE.MathUtils.clamp(camera.position.distanceTo(satGroup.position) / 3, 0.5, 2));
+  const pos = beamGeo.attributes.position;
+  pos.setXYZ(0, obsGroup.position.x, obsGroup.position.y, obsGroup.position.z);
+  pos.setXYZ(1, satGroup.position.x, satGroup.position.y, satGroup.position.z);
+  pos.needsUpdate = true;
+  obsRing.scale.setScalar(1 + 0.35 * Math.sin(t * 2.4));
+  if (camGoal) { camera.position.lerp(camGoal, 0.06); if (camera.position.distanceTo(camGoal) < 0.01) camGoal = null; }
+  controls.update();
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+})();
+</script>
+</body>
+</html>
