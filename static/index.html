@@ -174,10 +174,11 @@
     aside { display:flex; gap:8px; overflow-x:auto; padding:8px 12px; border-right:0; border-bottom:1px solid var(--line); }
     .sat-item { width:auto; white-space:nowrap; margin:0; flex:none; }
     .add-btn { width:auto; margin:0; white-space:nowrap; flex:none; }
-    main { grid-template-columns:minmax(0,1fr); grid-template-rows:none; grid-auto-rows:auto; }
+    main { grid-template-columns:minmax(0,1fr); grid-template-rows:none; grid-auto-rows:max-content; align-content:start; }
     #stage { order:1; height:min(62vh,560px); min-height:340px; }
-    .left { order:2; }
-    .bottom { order:3; grid-column:1; grid-template-columns:1fr 1fr; }
+    .left { order:2; min-height:auto; }
+    .left > .card { flex:none !important; overflow:visible !important; }
+    .bottom { order:3; grid-column:1; grid-template-columns:1fr 1fr; min-height:auto; }
     .bottom .card { height:250px; }
     .bottom .card:first-child { grid-column:1 / 3; }
   }
