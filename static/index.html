@@ -550,7 +550,7 @@ $('fsBtn').onclick = () => {
 /* =====================  оновлення інтерфейсу  ===================== */
 function renderSidebar() {
   const icon = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9.5" y="9" width="5" height="6" rx="1"/><path d="M2.5 9.5h5v5h-5zM16.5 9.5h5v5h-5zM7.5 12h2M14.5 12h2M12 9V5M12 15v4"/></svg>';
-  $('sidebar').innerHTML = sats.map(s =>
+  $('sidebar').innerHTML = sats.filter(s => s.available).map(s =>
     `<button class="sat-item${s.key === satKey ? ' active' : ''}${s.available ? '' : ' off'}" data-key="${esc(s.key)}" data-group="${esc(s.group)}"
        title="${s.available ? esc(s.desc) : 'Немає в завантажених TLE'}">${icon}<span class="nm">${esc(s.label)}</span></button>`).join('') +
     `<button class="add-btn" id="addSat"><span style="font-size:18px">+</span> Додати супутник</button>`;
@@ -701,7 +701,8 @@ function drawCharts() {
 
 /* =====================  дані  ===================== */
 async function refreshState() {
-  try { updateHud(await api(`/api/state?${q()}`)); } catch (e) { console.error(e); }
+  try { updateHud(await api(`/api/state?${q()}`)); }
+  catch (e) { console.error(e); $('hStatus').textContent = 'Немає даних TLE для цього супутника'; $('hStatus').className = 'status'; }
 }
 async function refreshInfo() {
   try { info = await api(`/api/info?sat=${encodeURIComponent(satKey)}`); } catch (e) { info = null; }
@@ -869,7 +870,7 @@ controls.update();
 
 try {
   sats = await api('/api/satellites');
-  if (!sats.some(s => s.key === satKey)) satKey = sats[0] ? sats[0].key : 'ISS';
+  if (!sats.some(s => s.key === satKey && s.available)) { const f = sats.find(s => s.available); satKey = f ? f.key : 'ISS'; }
 } catch (e) { console.error(e); }
 renderSidebar();
 await refreshInfo();

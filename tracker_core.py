@@ -25,12 +25,12 @@ SATELLITES = {
                 "label": "RS-44", "desc": "Лінійний транспондер"},
     "FO-29":   {"match": "FO-29",       "down": 435.850,  "up": 145.950, "group": "amateur",
                 "label": "FO-29 (JAS-2)", "desc": "Лінійний транспондер"},
-    "NOAA-19": {"match": "NOAA 19",     "down": 137.100,  "up": None,    "group": "weather",
-                "label": "NOAA-19", "desc": "Метеосупутник, APT-зображення"},
-    "NOAA-18": {"match": "NOAA 18",     "down": 137.9125, "up": None,    "group": "weather",
-                "label": "NOAA-18", "desc": "Метеосупутник, APT-зображення"},
-    "NOAA-15": {"match": "NOAA 15",     "down": 137.620,  "up": None,    "group": "weather",
-                "label": "NOAA-15", "desc": "Метеосупутник, APT-зображення"},
+    # NOAA-15/18/19 виведені з експлуатації, тому замість них метеосупутники Meteor-M.
+    # Частоти типові, перевір актуальні перед прийомом.
+    "METEOR-M2-3": {"match": "METEOR-M2 3", "down": 137.900, "up": None, "group": "weather",
+                    "label": "Meteor-M2 3", "desc": "Метеосупутник, LRPT (перевір частоту)"},
+    "METEOR-M2-4": {"match": "METEOR-M2 4", "down": 137.100, "up": None, "group": "weather",
+                    "label": "Meteor-M2 4", "desc": "Метеосупутник, LRPT (перевір частоту)"},
     "HST":     {"match": "HST",         "down": None,     "up": None,    "group": "science",
                 "label": "Hubble Space Telescope", "desc": "Космічний телескоп"},
 }
