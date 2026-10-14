@@ -158,14 +158,58 @@
   tr.clk { cursor:pointer; } tr.clk:hover td { background:var(--panel2); }
   .scroll { max-height:50vh; overflow:auto; }
 
+  #app { height:100dvh; }
+  #locName { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:min(260px,40vw); }
+  #topCard > div:first-child { min-width:0; }
+  #topCard b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .scroll table { min-width:540px; }
+
+  /* ---------- планшет ---------- */
   @media (max-width:1100px) {
-    #app { grid-template-columns:1fr; grid-template-rows:60px auto 1fr; }
-    header { grid-column:1; } nav { display:none; }
-    aside { display:flex; gap:8px; overflow-x:auto; padding:8px; border-right:0; border-bottom:1px solid var(--line); }
-    .sat-item { width:auto; white-space:nowrap; margin:0; } .add-btn { width:auto; margin:0; white-space:nowrap; }
-    main { grid-template-columns:1fr; grid-template-rows:auto 520px auto; }
-    .bottom { grid-column:1; grid-template-columns:1fr; } .bottom .card { height:250px; }
+    #app { grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto minmax(0,1fr); }
+    header { grid-column:1; flex-wrap:wrap; gap:8px 12px; padding:10px 14px; }
+    .brand { width:auto; font-size:19px; }
+    nav { order:5; width:100%; overflow-x:auto; }
+    nav button { white-space:nowrap; }
+    aside { display:flex; gap:8px; overflow-x:auto; padding:8px 12px; border-right:0; border-bottom:1px solid var(--line); }
+    .sat-item { width:auto; white-space:nowrap; margin:0; flex:none; }
+    .add-btn { width:auto; margin:0; white-space:nowrap; flex:none; }
+    main { grid-template-columns:minmax(0,1fr); grid-template-rows:none; grid-auto-rows:auto; }
+    #stage { order:1; height:min(62vh,560px); min-height:340px; }
+    .left { order:2; }
+    .bottom { order:3; grid-column:1; grid-template-columns:1fr 1fr; }
+    .bottom .card { height:250px; }
+    .bottom .card:first-child { grid-column:1 / 3; }
+  }
+
+  /* ---------- телефон ---------- */
+  @media (max-width:760px) {
+    html,body { font-size:13.5px; }
+    header { padding:8px 12px; }
+    main { padding:10px; gap:10px; }
+    .card { padding:14px; border-radius:14px; }
+    #stage { height:min(58vh,480px); min-height:320px; }
     #posCard, #legend { display:none; }
+    #compass { width:68px; height:68px; right:10px; top:10px; }
+    #compass svg { width:68px; height:68px; }
+    #topCard { top:10px; left:10px; padding:8px 10px; gap:10px; max-width:calc(100% - 100px); }
+    #zoom { left:10px; bottom:10px; }
+    #zoom button { width:34px; height:34px; }
+    #beamInfo { bottom:10px; padding:6px 12px; }
+    #beamInfo b { font-size:17px; }
+    .hero { gap:12px; }
+    .hero .pic { width:56px; height:56px; }
+    .hero h2 { font-size:18px; }
+    .stats { grid-template-columns:1fr 1fr; row-gap:10px; }
+    .stats div:nth-child(odd) { border-left:0; padding-left:0; }
+    .pass { grid-template-columns:1fr 1fr 1fr 52px; gap:4px; padding:10px; }
+    .pass .date { grid-column:1 / 5; }
+    .pass .chev { display:none; }
+    .pass .t, .pass .el span { font-size:13.5px; }
+    .bottom { grid-template-columns:minmax(0,1fr); }
+    .bottom .card:first-child { grid-column:1; }
+    dialog { padding:18px 16px; max-height:90dvh; width:94vw; }
+    input, select { font-size:16px; }
   }
 </style>
 </head>
